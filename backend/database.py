@@ -20,6 +20,8 @@ class _Row(dict):
 
 
 def _row_factory(cursor):
+    if cursor.description is None:
+        return lambda record: None
     columns = tuple(d.name for d in cursor.description)
     def _make_row(record):
         return _Row(zip(columns, record))
