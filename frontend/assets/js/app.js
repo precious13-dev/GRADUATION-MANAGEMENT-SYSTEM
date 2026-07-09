@@ -1,6 +1,6 @@
 // frontend/assets/js/app.js
 
-const API = 'http://localhost:5000';
+const API = '';
 
 const Auth = {
   getToken:   ()     => localStorage.getItem('gpms_token'),
