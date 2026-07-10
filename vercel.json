@@ -1,18 +1,22 @@
 {
-  "outputDirectory": "frontend",
+  "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://graduation-management-system.onrender.com/api/$1" },
-    { "source": "/pages/(.*)", "destination": "/pages/$1" },
-    { "source": "/", "destination": "/pages/login.html" }
-  ],
-  "headers": [
     {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization" }
-      ]
+      "source": "/",
+      "destination": "/frontend/pages/login.html"
+    },
+    {
+      "source": "/pages/:path*",
+      "destination": "/frontend/pages/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/frontend/assets/:path*"
+    },
+    {
+      "source": "/logo.jpg",
+      "destination": "/frontend/logo.jpg"
     }
   ]
 }
