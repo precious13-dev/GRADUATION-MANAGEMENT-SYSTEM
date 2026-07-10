@@ -481,7 +481,7 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-icon">
-        <img src="../../logo.jpg" alt="Cavendish University Zambia" style="width: 100%; height: auto; object-fit: contain;"/>
+        <img src="/logo.jpg" alt="Cavendish University Zambia" style="width: 100%; height: auto; object-fit: contain;"/>
       </div>
       <div class="brand-text"><h2>Cavendish University Zambia</h2><p>Graduation Management</p></div>
     </div>
@@ -849,7 +849,7 @@ window.submitUpload = async function() {
   formData.append('file', selectedFile);
 
   try {
-    const res = await fetch('http://localhost:5000/api/documents/upload', {
+    const res = await fetch('/api/documents/upload', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${Auth.getToken()}` },
       body: formData,
@@ -873,7 +873,7 @@ window.submitUpload = async function() {
 }
 
 window.downloadDocument = async function(docId) {
-  window.open(`http://localhost:5000/api/documents/download/${docId}`, '_blank');
+  window.open(`/api/documents/download/${docId}`, '_blank');
 }
 
 async function submitDocuments() {

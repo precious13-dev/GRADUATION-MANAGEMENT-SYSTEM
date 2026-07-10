@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-icon">
-        <img src="../../logo.jpg" alt="Cavendish University Zambia" style="width: 100%; height: auto; object-fit: contain;"/>
+        <img src="/logo.jpg" alt="Cavendish University Zambia" style="width: 100%; height: auto; object-fit: contain;"/>
       </div>
       <div class="brand-text"><h2>Cavendish University Zambia</h2><p>Graduation Management</p></div>
     </div>
@@ -342,7 +342,7 @@
   }
 
   function downloadStudentDoc(docId) {
-    window.open(`http://localhost:5000/api/documents/download/${docId}`, '_blank');
+    window.open(`/api/documents/download/${docId}`, '_blank');
   }
 
   async function supervisorApproveDoc(docId, docName) {

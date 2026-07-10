@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-icon">
-        <img src="../../logo.jpg" alt="Cavendish University Zambia" style="width: 100%; height: auto; object-fit: contain;"/>
+        <img src="/logo.jpg" alt="Cavendish University Zambia" style="width: 100%; height: auto; object-fit: contain;"/>
       </div>
       <div class="brand-text"><h2>Cavendish University Zambia</h2><p>Graduation Management</p></div>
     </div>
@@ -345,7 +345,7 @@ table td:nth-child(5) {
         
         if (isForThisRole) {
           const token = Auth.getToken();
-          const docUrl = `http://localhost:5000/api/documents/download/${doc.id}?token=${token}`;
+          const docUrl = `/api/documents/download/${doc.id}?token=${token}`;
           html += `
             <div class="doc-preview">
               <iframe src="${docUrl}" class="doc-preview-frame"></iframe>
@@ -382,7 +382,7 @@ table td:nth-child(5) {
   }
 
   function downloadDoc(docId) {
-    window.open(`http://localhost:5000/api/documents/download/${docId}`, '_blank');
+    window.open(`/api/documents/download/${docId}`, '_blank');
   }
 
   function rejectDoc(docId, docName) {
