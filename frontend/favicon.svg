@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0d2757"/>
+  <g transform="translate(32,30)">
+    <!-- mortarboard top -->
+    <polygon points="0,-16 28,0 0,8 -28,0" fill="#c8991f"/>
+    <!-- board shadow -->
+    <polygon points="0,8 28,0 28,4 0,12" fill="#a07d14"/>
+    <polygon points="0,8 -28,0 -28,4 0,12" fill="#a07d14"/>
+    <!-- tassel line -->
+    <line x1="14" y1="0" x2="14" y2="14" stroke="#c8991f" stroke-width="1.5"/>
+    <!-- tassel dot -->
+    <circle cx="14" cy="16" r="2.5" fill="#c8991f"/>
+    <!-- band -->
+    <rect x="-10" y="2" width="20" height="6" rx="1" fill="#0d2757" opacity="0.3"/>
+  </g>
+</svg>
