@@ -276,6 +276,7 @@ table td:nth-child(5) {
     document.getElementById('page-title').textContent = (officeNames[user.role]||user.role) + ' — Dashboard';
     document.getElementById('sidebar-role').textContent = officeNames[user.role] || user.role;
     loadPending();
+    loadAll();
     loadNotifications();
   }
 
@@ -314,7 +315,7 @@ table td:nth-child(5) {
   }
 
   function getRoleLabel(role) {
-    const labels = {finance:'Finance Office',library:'Library',academics:'Academics',supervisor:'Supervisor',department:'Department'};
+    const labels = {finance:'Finance Office',library:'Library',academics:'Academics',supervisor:'Supervisor',department:'Department',hod:'Head of Department'};
     return labels[role] || role;
   }
 
@@ -351,13 +352,14 @@ table td:nth-child(5) {
         
         if (isForThisRole) {
           const token = Auth.getToken();
+          const previewUrl = API + `/api/documents/preview/${doc.id}?token=${token}`;
           const docUrl = API + `/api/documents/download/${doc.id}?token=${token}`;
           html += `
             <div class="doc-preview">
-              <iframe src="${docUrl}" class="doc-preview-frame"></iframe>
+              <iframe src="${previewUrl}" class="doc-preview-frame"></iframe>
             </div>
             <div class="doc-review-actions">
-              <button onclick="window.open('${docUrl}', '_blank')">Open in New Tab</button>
+              <button onclick="window.open('${docUrl}', '_blank')">Download</button>
               ${doc.status === 'pending' ? `
                 <button onclick="rejectDoc(${doc.id}, '${esc(doc.type_name)}')" style="background:#e53e3e;color:white">Reject</button>
                 <button onclick="approveDoc(${doc.id}, '${esc(doc.type_name)}')" style="background:#38a169;color:white">Approve</button>
@@ -438,7 +440,7 @@ table td:nth-child(5) {
   async function submitReview(status) {
     if (!currentReqId) return;
     const data = await api('PUT', `/api/clearance/${currentReqId}/review`, {status, remarks: document.getElementById('modal-remarks').value});
-    if (data?.success) { toast(`Request ${status} successfully`, 'success'); closeModal(); loadPending(); }
+    if (data?.success) { toast(`Request ${status} successfully`, 'success'); closeModal(); loadPending(); loadAll(); }
     else toast(data?.message || 'Error', 'error');
   }
 

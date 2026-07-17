@@ -104,6 +104,15 @@
         </div>
       </div>
 
+      <!-- Graduation Status Banner -->
+      <div id="grad-status-banner" style="display:none;border-radius:var(--radius-lg);padding:20px 28px;margin-bottom:20px;align-items:center;gap:16px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div>
+          <strong id="grad-status-title" style="font-size:1.05rem"></strong>
+          <p id="grad-status-msg" style="font-size:.85rem;opacity:.85;margin-top:2px"></p>
+        </div>
+      </div>
+
       <!-- Checklist -->
       <div class="card" id="checklist-section">
         <div class="card-header">
@@ -263,6 +272,22 @@
         document.getElementById('gate-title').textContent = 'Defence Not Passed';
         document.getElementById('gate-msg').textContent   = 'Your project defence was not passed. Please contact your supervisor.';
       }
+    }
+
+    if (d.graduation_status === 'eligible') {
+      const banner = document.getElementById('grad-status-banner');
+      banner.style.display = 'flex';
+      banner.style.background = 'linear-gradient(135deg, #065f46, #047857)';
+      banner.style.color = 'white';
+      document.getElementById('grad-status-title').textContent = 'Ready to Graduate!';
+      document.getElementById('grad-status-msg').textContent  = 'Congratulations! You have completed all clearance requirements and passed your defence. You are eligible to graduate.';
+    } else if (d.graduation_status === 'pending_defense') {
+      const banner = document.getElementById('grad-status-banner');
+      banner.style.display = 'flex';
+      banner.style.background = 'linear-gradient(135deg, #92400e, #b45309)';
+      banner.style.color = 'white';
+      document.getElementById('grad-status-title').textContent = 'Clearance Complete — Awaiting Defence';
+      document.getElementById('grad-status-msg').textContent  = 'All office clearances are approved. Please pass your project defence to become eligible for graduation.';
     }
 
     if (d.graduation) {

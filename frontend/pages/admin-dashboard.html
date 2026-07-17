@@ -37,6 +37,10 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Clearance Report
       </a>
+      <a class="nav-item" data-nav="graduation" href="#" onclick="showSection('graduation');return false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Graduation List
+      </a>
       <a class="nav-item" data-nav="settings" href="#" onclick="showSection('settings');return false">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
         Settings
@@ -126,6 +130,7 @@
               <option value="department">Department</option>
               <option value="academics">Academics</option>
               <option value="supervisor">Supervisors</option>
+              <option value="hod">HOD</option>
               <option value="admin">Admin</option>
             </select>
             <input type="text" class="form-control" style="max-width:240px;padding:6px 11px;font-size:.8rem" placeholder="Search..." id="user-search" oninput="filterUserTable()" autocomplete="off"/>
@@ -150,6 +155,23 @@
             <table>
               <thead><tr><th>Student</th><th>Student No.</th><th>Defence</th><th>Approved</th><th>Pending</th><th>Rejected</th><th>Documents</th><th>Cleared</th></tr></thead>
               <tbody id="report-tbody"><tr><td colspan="8"><div class="loading-state"><div class="spinner dark"></div></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRADUATION LIST -->
+      <div id="section-graduation" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <h3>Graduation List</h3>
+            <button class="btn btn-outline btn-sm" onclick="loadGraduationList()">Refresh</button>
+          </div>
+          <div style="padding:0 1.25rem 1rem;display:flex;gap:16px;flex-wrap:wrap" id="grad-stats"></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Student</th><th>Student No.</th><th>Programme</th><th>Defence</th><th>Clearance</th><th>Status</th></tr></thead>
+              <tbody id="grad-tbody"><tr><td colspan="6"><div class="loading-state"><div class="spinner dark"></div></div></td></tr></tbody>
             </table>
           </div>
         </div>
@@ -210,6 +232,7 @@
           <option value="department">Department</option>
           <option value="academics">Academics</option>
           <option value="supervisor">Supervisor</option>
+          <option value="hod">HOD</option>
           <option value="admin">Admin</option>
         </select>
       </div>
@@ -231,15 +254,22 @@
 <div id="toast"></div>
 <script src="../assets/js/app.js"></script>
 <script>
-  const sections = ['overview','users','report','settings'];
-  const titles   = {overview:'Overview', users:'User Management', report:'Clearance Report', settings:'System Settings'};
+  const sections = ['overview','users','report','graduation','settings'];
+  const titles   = {overview:'Overview', users:'User Management', report:'Clearance Report', graduation:'Graduation List', settings:'System Settings'};
 
-  const user = guardPage(['admin']);
+  const user = guardPage(['admin', 'hod']);
   if (user) init();
 
   let allUsers = [];
 
-  function init() { hydrateSidebar('overview'); showSection('overview'); loadNotifications(); }
+  function init() {
+    hydrateSidebar('overview');
+    showSection('overview');
+    loadNotifications();
+    if (user.role === 'hod') {
+      document.getElementById('page-title').textContent = 'HOD Dashboard';
+    }
+  }
 
   function showSection(name) {
     sections.forEach(s => document.getElementById(`section-${s}`).style.display = s===name ? 'block':'none');
@@ -248,6 +278,7 @@
     if (name==='overview') loadOverview();
     if (name==='users')    loadUsers();
     if (name==='report')   loadReport();
+    if (name==='graduation') loadGraduationList();
     if (name==='settings') loadSettings();
   }
 
@@ -350,6 +381,37 @@
         <td style="color:#e53e3e;font-weight:600">${r.rejected||0}</td>
         <td style="font-size:.8rem;font-weight:600"><span style="color:${docApproved===docTotal?'#38a169':'#5a6b79'}">${docApproved}/${docTotal} (${docPercent}%)</span></td>
         <td>${r.fully_cleared?'<span class="badge badge-approved">Yes</span>':'<span class="badge badge-pending">No</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function loadGraduationList() {
+    const data = await api('GET', '/api/admin/graduation-list');
+    if (!data?.success) return;
+    const d = data.data;
+    document.getElementById('grad-stats').innerHTML = `
+      <div class="stat-card green" style="flex:1;min-width:140px"><div class="stat-value">${d.total_eligible}</div><div class="stat-label">Eligible to Graduate</div></div>
+      <div class="stat-card navy" style="flex:1;min-width:140px"><div class="stat-value">${d.total_students}</div><div class="stat-label">Total Students</div></div>
+      ${d.graduation ? `<div class="stat-card gold" style="flex:1;min-width:140px"><div class="stat-value" style="font-size:.9rem">${d.graduation.graduation_date}</div><div class="stat-label">Graduation Date</div></div>` : ''}
+    `;
+    const tbody = document.getElementById('grad-tbody');
+    if (!d.students.length) { tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state" style="padding:22px"><p>No students registered.</p></div></td></tr>`; return; }
+    const ti = d.total_items || 0;
+    tbody.innerHTML = d.students.map(s => {
+      const defense = s.defense_status || 'not_submitted';
+      const defenseBadge = defense==='passed' ? 'approved' : defense==='failed' ? 'rejected' : 'pending';
+      let statusBadge, statusLabel;
+      if (s.graduation_status === 'eligible') { statusBadge = 'approved'; statusLabel = 'Eligible'; }
+      else if (s.graduation_status === 'pending_defense') { statusBadge = 'gold'; statusLabel = 'Pending Defence'; }
+      else { statusBadge = 'pending'; statusLabel = 'In Progress'; }
+      return `
+      <tr>
+        <td><strong style="color:var(--navy)">${s.name}</strong></td>
+        <td>${s.student_number||'—'}</td>
+        <td>${s.program||'—'}</td>
+        <td><span class="badge badge-${defenseBadge}">${defense}</span></td>
+        <td>${s.approved_count||0}/${ti}</td>
+        <td><span class="badge badge-${statusBadge}">${statusLabel}</span></td>
       </tr>`;
     }).join('');
   }

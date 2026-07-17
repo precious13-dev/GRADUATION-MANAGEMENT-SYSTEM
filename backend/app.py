@@ -30,6 +30,7 @@ ROLE_LABELS = {
     'department': 'Academic Department',
     'academics':  'Academics',
     'supervisor': 'Supervisor',
+    'hod':        'Head of Department',
     'admin':      'Administration',
 }
 
@@ -76,7 +77,7 @@ def register():
         if not b.get(f):
             return err(f"Field '{f}' is required", 422)
 
-    allowed_roles = ['student','finance','library','department','academics','supervisor']
+    allowed_roles = ['student','finance','library','department','academics','supervisor','hod']
     if b['role'] not in allowed_roles:
         return err('Invalid role', 422)
     if len(b['password']) < 6:
@@ -178,6 +179,14 @@ def student_dashboard():
     pending  = sum(1 for i in checklist if i['status'] not in ('approved','rejected'))
     total    = len(checklist)
     fully_cleared = total > 0 and approved == total
+    defense_status = student.get('defense_status', 'not_submitted')
+
+    if fully_cleared and defense_status == 'passed':
+        graduation_status = 'eligible'
+    elif fully_cleared:
+        graduation_status = 'pending_defense'
+    else:
+        graduation_status = 'in_progress'
 
     grad = row_to_dict(db.execute("SELECT * FROM graduation_settings ORDER BY id DESC LIMIT 1").fetchone())
     db.close()
@@ -189,9 +198,10 @@ def student_dashboard():
 
     return ok({
         'student': student,
-        'defense_status': student.get('defense_status', 'not_submitted'),
+        'defense_status': defense_status,
         'clearance_summary': {'total': total, 'approved': approved, 'rejected': rejected, 'pending': pending},
         'fully_cleared': fully_cleared,
+        'graduation_status': graduation_status,
         'graduation': {'date': grad['graduation_date'], 'academic_year': grad.get('academic_year'), 'days_left': days_left} if grad else None,
         'checklist': checklist,
     })
@@ -394,7 +404,7 @@ def admin_create_user():
     for f in ['name', 'email', 'password', 'role']:
         if not b.get(f): return err(f"Field '{f}' is required", 422)
 
-    allowed_roles = ['student','finance','library','department','academics','supervisor','admin']
+    allowed_roles = ['student','finance','library','department','academics','supervisor','admin','hod']
     if b['role'] not in allowed_roles:
         return err('Invalid role', 422)
 
@@ -487,6 +497,49 @@ def set_grad_date():
                    (b['graduation_date'], b.get('academic_year'), request.user['id']))
     db.commit(); db.close()
     return ok({}, 'Graduation date updated')
+
+
+@app.route('/api/admin/graduation-list', methods=['GET'])
+@require_auth(['admin', 'hod'])
+def graduation_list():
+    db = get_db()
+    total_items = db.execute("SELECT COUNT(*) FROM clearance_items WHERE is_active=1").fetchone()[0]
+    grad = row_to_dict(db.execute("SELECT * FROM graduation_settings ORDER BY id DESC LIMIT 1").fetchone())
+
+    students = rows_to_list(db.execute(
+        """SELECT u.id, u.name, u.student_number, u.email,
+                  sp.program, sp.defense_status,
+                  (SELECT COUNT(*) FROM clearance_requests cr
+                   JOIN clearance_items ci ON ci.id=cr.clearance_item_id
+                   WHERE cr.student_id=u.id AND ci.is_active=1 AND cr.status='approved') AS approved_count
+           FROM users u
+           LEFT JOIN student_profiles sp ON sp.user_id=u.id
+           WHERE u.role='student' AND u.is_active=1
+           ORDER BY u.name""").fetchall())
+
+    result = []
+    for s in students:
+        ac = s['approved_count'] or 0
+        fully_cleared = total_items > 0 and ac == total_items
+        defense = s.get('defense_status', 'not_submitted')
+        if fully_cleared and defense == 'passed':
+            grad_status = 'eligible'
+        elif fully_cleared:
+            grad_status = 'pending_defense'
+        else:
+            grad_status = 'in_progress'
+        result.append({**s, 'fully_cleared': fully_cleared, 'graduation_status': grad_status})
+
+    eligible = [s for s in result if s['graduation_status'] == 'eligible']
+    db.close()
+    return ok({
+        'students': result,
+        'eligible': eligible,
+        'total_eligible': len(eligible),
+        'total_students': len(result),
+        'total_items': total_items,
+        'graduation': {'date': grad['graduation_date'], 'academic_year': grad.get('academic_year')} if grad else None,
+    })
 
 
 @app.route('/api/admin/clearance-items', methods=['POST'])
@@ -731,7 +784,7 @@ def submit_documents():
 
 # Route 5: GET /api/documents/student/<int:student_id>
 @app.route('/api/documents/student/<int:student_id>', methods=['GET'])
-@require_auth(['finance', 'library', 'academics', 'supervisor', 'admin', 'department'])
+@require_auth(['finance', 'library', 'academics', 'supervisor', 'admin', 'department', 'hod'])
 def get_student_documents(student_id):
     db = get_db()
     
@@ -769,7 +822,7 @@ def get_student_documents(student_id):
 
 # Route 6: GET /api/documents/pending
 @app.route('/api/documents/pending', methods=['GET'])
-@require_auth(['finance', 'library', 'academics', 'supervisor'])
+@require_auth(['finance', 'library', 'academics', 'supervisor', 'hod'])
 def get_pending_documents():
     user_role = request.user['role']
     db = get_db()
@@ -807,7 +860,7 @@ def get_pending_documents():
 
 # Route 7: GET /api/documents/all-submissions
 @app.route('/api/documents/all-submissions', methods=['GET'])
-@require_auth(['finance', 'library', 'academics', 'supervisor', 'admin', 'department'])
+@require_auth(['finance', 'library', 'academics', 'supervisor', 'admin', 'department', 'hod'])
 def get_all_submissions():
     user_role = request.user['role']
     db = get_db()
@@ -840,7 +893,7 @@ def get_all_submissions():
 
 # Route 8: PUT /api/documents/<int:doc_id>/review
 @app.route('/api/documents/<int:doc_id>/review', methods=['PUT'])
-@require_auth(['finance', 'library', 'academics', 'supervisor', 'admin', 'department'])
+@require_auth(['finance', 'library', 'academics', 'supervisor', 'admin', 'department', 'hod'])
 def review_document(doc_id):
     user_role = request.user['role']
     b = request.get_json() or {}
@@ -936,7 +989,7 @@ def download_document(doc_id):
     
     # Authorization: student can download own, office/supervisor/admin can download any
     can_download = (request.user['id'] == doc['student_id'] or 
-                    request.user['role'] in ['finance', 'library', 'academics', 'supervisor', 'admin', 'department'])
+                    request.user['role'] in ['finance', 'library', 'academics', 'supervisor', 'admin', 'department', 'hod'])
     
     if not can_download:
         return err('You cannot download this document', 403)
@@ -946,6 +999,32 @@ def download_document(doc_id):
         return err('File not found', 404)
     
     return send_file(filepath, as_attachment=True, download_name=doc['original_name'])
+
+
+@app.route('/api/documents/preview/<int:doc_id>', methods=['GET'])
+@require_auth()
+def preview_document(doc_id):
+    db = get_db()
+    doc = row_to_dict(db.execute(
+        """SELECT sd.*, u.id AS student_id FROM student_documents sd
+           JOIN users u ON u.id=sd.student_id
+           WHERE sd.id=%s""", (doc_id,)).fetchone())
+    db.close()
+
+    if not doc:
+        return err('Document not found', 404)
+
+    can_view = (request.user['id'] == doc['student_id'] or
+                request.user['role'] in ['finance', 'library', 'academics', 'supervisor', 'admin', 'department', 'hod'])
+
+    if not can_view:
+        return err('You cannot view this document', 403)
+
+    filepath = os.path.join(UPLOAD_FOLDER, doc['filename'])
+    if not os.path.exists(filepath):
+        return err('File not found', 404)
+
+    return send_file(filepath, as_attachment=False, download_name=doc['original_name'])
 
 
 # Route 10: GET /api/documents/progress/<int:student_id>
